@@ -1,0 +1,12 @@
+import pandas as pd
+
+# Load your CSV files
+train_df = pd.read_csv("/content/HAR_Dataset/train.csv")
+test_df = pd.read_csv("/content/HAR_Dataset/test.csv")
+
+print("✅ Data Loaded Successfully!")
+print("Training shape:", train_df.shape)
+print("Testing shape:", test_df.shape)
+
+# Display the first few rows
+train_df.head()

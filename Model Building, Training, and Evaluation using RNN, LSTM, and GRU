@@ -1,0 +1,95 @@
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, SimpleRNN, LSTM, GRU, Dropout
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix
+import seaborn as sns
+import numpy as np
+
+# Helper function for plotting accuracy and loss
+def plot_history(history, title):
+    plt.figure(figsize=(12,5))
+    plt.subplot(1,2,1)
+    plt.plot(history.history['accuracy'], label='Train Accuracy')
+    plt.plot(history.history['val_accuracy'], label='Val Accuracy')
+    plt.title(f'{title} Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    plt.subplot(1,2,2)
+    plt.plot(history.history['loss'], label='Train Loss')
+    plt.plot(history.history['val_loss'], label='Val Loss')
+    plt.title(f'{title} Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+# For comparison
+results = {}
+
+# 🌀 Simple RNN Model
+rnn_model = Sequential([
+    SimpleRNN(64, input_shape=(X_train_seq.shape[1], X_train_seq.shape[2]), activation='tanh'),
+    Dropout(0.3),
+    Dense(y_train_encoded.shape[1], activation='softmax')
+])
+
+rnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+history_rnn = rnn_model.fit(X_train_seq, y_train_encoded, epochs=10, batch_size=64, validation_data=(X_test_seq, y_test_encoded), verbose=1)
+results['RNN'] = rnn_model.evaluate(X_test_seq, y_test_encoded, verbose=0)
+
+plot_history(history_rnn, "RNN")
+
+# ⚡ LSTM Model
+lstm_model = Sequential([
+    LSTM(64, input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])),
+    Dropout(0.3),
+    Dense(y_train_encoded.shape[1], activation='softmax')
+])
+
+lstm_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+history_lstm = lstm_model.fit(X_train_seq, y_train_encoded, epochs=10, batch_size=64, validation_data=(X_test_seq, y_test_encoded), verbose=1)
+results['LSTM'] = lstm_model.evaluate(X_test_seq, y_test_encoded, verbose=0)
+
+plot_history(history_lstm, "LSTM")
+
+# ⚙️ GRU Model
+gru_model = Sequential([
+    GRU(64, input_shape=(X_train_seq.shape[1], X_train_seq.shape[2])),
+    Dropout(0.3),
+    Dense(y_train_encoded.shape[1], activation='softmax')
+])
+
+gru_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+history_gru = gru_model.fit(X_train_seq, y_train_encoded, epochs=10, batch_size=64, validation_data=(X_test_seq, y_test_encoded), verbose=1)
+results['GRU'] = gru_model.evaluate(X_test_seq, y_test_encoded, verbose=0)
+
+plot_history(history_gru, "GRU")
+
+# 📊 Compare model performance
+print("\n=== Model Accuracy Comparison ===")
+for model, score in results.items():
+    print(f"{model} → Loss: {score[0]:.4f}, Accuracy: {score[1]*100:.2f}%")
+
+# 📉 Evaluate best model (LSTM or GRU usually)
+best_model = max(results, key=lambda x: results[x][1])
+print(f"\n🏆 Best Model: {best_model}")
+
+# Confusion Matrix for best model
+model_obj = {'RNN': rnn_model, 'LSTM': lstm_model, 'GRU': gru_model}[best_model]
+y_pred = model_obj.predict(X_test_seq)
+y_pred_classes = np.argmax(y_pred, axis=1)
+y_true = np.argmax(y_test_encoded, axis=1)
+
+plt.figure(figsize=(6,5))
+sns.heatmap(confusion_matrix(y_true, y_pred_classes), annot=True, fmt='d', cmap='Blues')
+plt.title(f'{best_model} Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.show()
+
+# Classification report
+print(f"\n📋 {best_model} Classification Report:")
+print(classification_report(y_true, y_pred_classes))
